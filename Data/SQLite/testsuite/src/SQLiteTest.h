@@ -100,6 +100,8 @@ public:
 
 	void testDateTime();
 
+	void testUUID();
+
 	void testInternalExtraction();
 	void testPrimaryKeyConstraint();
 	void testNullable();
@@ -132,6 +134,8 @@ public:
 	void testTransactor();
 
 	void testFTS3();
+
+	void testIllegalFilePath();
 
 	void setUp();
 	void tearDown();
