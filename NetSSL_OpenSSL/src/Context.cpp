@@ -19,6 +19,8 @@
 #include "Poco/Crypto/OpenSSLInitializer.h"
 #include "Poco/File.h"
 #include "Poco/Path.h"
+#include "Poco/DirectoryIterator.h"
+#include "Poco/RegularExpression.h"
 #include "Poco/Timestamp.h"
 #include <openssl/bio.h>
 #include <openssl/err.h>
@@ -115,6 +117,37 @@ Context::~Context()
 	}
 }
 
+static bool poco_dir_cert(const std::string & dir)
+{
+	if (dir.empty())
+		return false;
+
+	File f(dir);
+	return f.exists() && f.isDirectory();
+}
+
+static bool poco_dir_contains_certs(const std::string & dir)
+{
+	RegularExpression re("^[a-fA-F0-9]{8}\\.\\d$");
+	try
+	{
+		for (DirectoryIterator it(dir), end; it != end; ++it)
+			if (re.match(Path(it->path()).getFileName()))
+				return true;
+	}
+	catch (Poco::Exception& exc) {}
+
+	return false;
+}
+
+static bool poco_file_cert(const std::string & file)
+{
+	if (file.empty())
+		return false;
+
+	File f(file);
+	return f.exists() && f.isFile();
+}
 
 static int poco_ssl_probe_and_set_default_ca_location(SSL_CTX *ctx, Context::CAPaths &caPaths)
 {
@@ -161,21 +194,32 @@ static int poco_ssl_probe_and_set_default_ca_location(SSL_CTX *ctx, Context::CAP
 #endif
 	};
 
+	const char * dir = nullptr;
 	for (const char * path : paths)
 	{
-		Poco::File file(path);
-		if (!file.exists())
-			continue;
-		
-		bool is_dir = file.isDirectory();
-		if (SSL_CTX_load_verify_locations(ctx, is_dir ? NULL : path, is_dir ? path : NULL))
+		if (poco_dir_cert(path))
 		{
-			if (is_dir)
+			if (dir == nullptr)
+				dir = path;
+
+			if (poco_dir_contains_certs(path) && SSL_CTX_load_verify_locations(ctx, NULL, path))
+			{
 				caPaths.caDefaultDir = path;
-			else
-				caPaths.caDefaultFile = path;
+				return 1;
+			}
+		}
+
+		if (SSL_CTX_load_verify_locations(ctx, path, NULL))
+		{
+			caPaths.caDefaultFile = path;
 			return 1;
 		}
+	}
+
+	if (dir != nullptr)
+	{
+		caPaths.caDefaultDir = dir;
+		return SSL_CTX_load_verify_locations(ctx, NULL, dir);
 	}
 
 	return 0;
@@ -208,23 +252,36 @@ void Context::init(const Params& params)
 
 		if (params.loadDefaultCAs)
 		{
-			errCode = SSL_CTX_set_default_verify_paths(_pSSLContext);
-			if (errCode == 1)
-			{
-				const char * dir = getenv(X509_get_default_cert_dir_env());
-				if (!dir)
-					dir = X509_get_default_cert_dir();
-				if (dir)
-					_caPaths.caDefaultDir = dir;
+			const char * dir = getenv(X509_get_default_cert_dir_env());
+			if (!dir)
+				dir = X509_get_default_cert_dir();
 
-				const char * file = getenv(X509_get_default_cert_file_env());
-				if (!file)
-					file = X509_get_default_cert_file();
-				if (file)
-					_caPaths.caDefaultFile = file;
+			const char * file = getenv(X509_get_default_cert_file_env());
+			if (!file)
+				file = X509_get_default_cert_file();
+
+			if (poco_file_cert(file))
+			{
+				_caPaths.caDefaultFile = file;
+				errCode = SSL_CTX_set_default_verify_paths(_pSSLContext);
 			}
 			else
-				errCode = poco_ssl_probe_and_set_default_ca_location(_pSSLContext, _caPaths);
+			{
+				if (poco_dir_cert(dir))
+				{
+					errCode = 0;
+					if (!poco_dir_contains_certs(dir))
+						errCode = poco_ssl_probe_and_set_default_ca_location(_pSSLContext, _caPaths);
+
+					if (errCode == 0)
+					{
+						errCode = SSL_CTX_set_default_verify_paths(_pSSLContext);
+						_caPaths.caDefaultDir = dir;
+					}
+				}
+				else
+					errCode = poco_ssl_probe_and_set_default_ca_location(_pSSLContext, _caPaths);
+			}
 
 			if (errCode != 1)
 			{
