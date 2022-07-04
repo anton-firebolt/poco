@@ -7,6 +7,10 @@ on:
 
 jobs:
   linux-gcc-cmake:
+    # Disable workflow since it had been broken long time ago.
+    # Strictly speaking this is not nesessarry, since poco is tested under ClickHouse CI,
+    # but it is still better to run all existing tests...
+    if: ${{ false }}
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
