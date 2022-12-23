@@ -64,7 +64,7 @@ public:
 		/// Creates a Message with the given source, text and priority.
 		/// The thread and process ids are set.
 
-	Message(const std::string& source, const std::string& text, Priority prio, const char* file, int line);
+	Message(const std::string& source, const std::string& text, Priority prio, const char* file, int line, std::string_view fmt_str = {});
 		/// Creates a Message with the given source, text, priority,
 		/// source file path and line. 
 		///
@@ -151,6 +151,9 @@ public:
 		///
 		/// This is usually the result of the __LINE__
 		/// macro.
+
+    std::string_view getFormatString() const;
+    void setFormatString(std::string_view fmt_str);
 		
 	int getSourceLine() const;
 		/// Returns the source file line of the statement
@@ -200,6 +203,7 @@ private:
 	const char* _file;
 	int         _line;
 	StringMap*  _pMap;
+    std::string_view _fmt_str;
 };
 
 

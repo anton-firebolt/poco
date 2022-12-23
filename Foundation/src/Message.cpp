@@ -29,7 +29,8 @@ Message::Message():
 	_tid(0), 
 	_file(0),
 	_line(0),
-	_pMap(0) 
+	_pMap(0),
+    _fmt_str(0)
 {
 	init();
 }
@@ -42,20 +43,21 @@ Message::Message(const std::string& source, const std::string& text, Priority pr
 	_tid(0),
 	_file(0),
 	_line(0),
-	_pMap(0) 
+	_pMap(0)
 {
 	init();
 }
 
 
-Message::Message(const std::string& source, const std::string& text, Priority prio, const char* file, int line):
+Message::Message(const std::string& source, const std::string& text, Priority prio, const char* file, int line, std::string_view fmt_str):
 	_source(source), 
 	_text(text), 
 	_prio(prio), 
 	_tid(0),
 	_file(file),
 	_line(line),
-	_pMap(0) 
+	_pMap(0),
+    _fmt_str(fmt_str)
 {
 	init();
 }
@@ -70,7 +72,8 @@ Message::Message(const Message& msg):
 	_thread(msg._thread),
 	_pid(msg._pid),
 	_file(msg._file),
-	_line(msg._line)
+	_line(msg._line),
+    _fmt_str(msg._fmt_str)
 {
 	if (msg._pMap)
 		_pMap = new StringMap(*msg._pMap);
@@ -88,7 +91,8 @@ Message::Message(const Message& msg, const std::string& text):
 	_thread(msg._thread),
 	_pid(msg._pid),
 	_file(msg._file),
-	_line(msg._line)
+	_line(msg._line),
+    _fmt_str(msg._fmt_str)
 {
 	if (msg._pMap)
 		_pMap = new StringMap(*msg._pMap);
@@ -141,6 +145,7 @@ void Message::swap(Message& msg)
 	swap(_file, msg._file);
 	swap(_line, msg._line);
 	swap(_pMap, msg._pMap);
+	swap(_fmt_str, msg._fmt_str);
 }
 
 
@@ -195,6 +200,16 @@ void Message::setSourceFile(const char* file)
 void Message::setSourceLine(int line)
 {
 	_line = line;
+}
+
+std::string_view Message::getFormatString() const
+{
+    return _fmt_str;
+}
+
+void Message::setFormatString(std::string_view fmt_str)
+{
+    _fmt_str = fmt_str;
 }
 
 
