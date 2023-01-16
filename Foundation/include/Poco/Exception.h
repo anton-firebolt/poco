@@ -33,6 +33,9 @@ public:
 	Exception(const std::string& msg, int code = 0);
 		/// Creates an exception.
 
+    Exception(std::string&& msg, int code = 0);
+    /// Creates an exception.
+
 	Exception(const std::string& msg, const std::string& arg, int code = 0);
 		/// Creates an exception.
 
