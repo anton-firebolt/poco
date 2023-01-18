@@ -36,7 +36,7 @@ public:
 
 	enum
 	{
-		BUFFER_SIZE = 4096
+		BUFFER_SIZE = 128 * 1024 
 	};
 
 private:
