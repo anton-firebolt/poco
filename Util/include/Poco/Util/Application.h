@@ -274,6 +274,9 @@ public:
 		///
 		/// Throws a NullPointerException if no Application instance exists.
 
+	static Application* instancePtr();
+		/// Returns a pointer to the Application singleton or nullptr.
+
 	const Poco::Timestamp& startTime() const;
 		/// Returns the application start time (UTC).
 
@@ -456,6 +459,11 @@ inline Application& Application::instance()
 {
 	poco_check_ptr (_pInstance);
 	return *_pInstance;
+}
+
+inline Application* Application::instancePtr()
+{
+	return _pInstance;
 }
 
 
